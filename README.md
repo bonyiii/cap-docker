@@ -59,11 +59,11 @@ require 'capistrano/docker'
 
 ## Usage
 
-cap deploy:docker
-cap deploy:docker:run               # Prerelease, deploy a new version while the old one available for the public
-cap deploy:docker:golive            # Replace old version with new one
-cap deploy:docker:rollback          # If something goes wrong ;)
-cap deploy:docker:cleanup           # Remove old containers
+cap docker:deploy                # Full deploy, stop previous container
+cap docker:preview               # Prerelease, deploy a new version while the old one available for the public
+cap docker:golive                # Replace old version with new one
+cap docker:rollback              # If something goes wrong ;)
+cap docker:cleanup               # Remove old containers
 
 ## Contributing
 

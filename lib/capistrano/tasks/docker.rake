@@ -61,7 +61,7 @@ namespace :docker do
 
   desc 'Current release good to go live'
   task :golive do
-    invoke 'deploy:cleanup_rollback'
+    invoke 'docker:forward:stop_previous'
   end
 
   def options
