@@ -27,12 +27,14 @@ When you finished and decided to go live:
 
 
 ```ruby
+set :docker_use, true                              # set false if you don't want to use it on a host
 set :docker_host, [:host]                          # On which roles should docker command exceuted
-set :docker_current_path, fetch(:current_path)     # Within container app will mounted into this directory
-set :docker_shared_path, fetch(:current_path)      # Shared path within container
+set :docker_current_path, current_path             # Within container app will mounted into this directory
+set :docker_shared_path, shared_path               # Shared path within container
 set :docker_gemset_path, "host_path:guest_path"    # gemset path, no default, if not set not in use
 set :dcoker_baseimage, ""                          # Specify the baseimage will be use to generate container
 set :docker_prefix, "myapp"                        # Dcoker container name: prefix + capistarno directory name, eg: myapp_20150509174653
+set :docker_port, 3000                             # Dcoker container exposed port
 ```
 
 

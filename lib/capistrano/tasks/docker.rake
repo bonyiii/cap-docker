@@ -1,28 +1,46 @@
 namespace :docker do
   desc 'Create new container'
   task :run do
+    next unless fetch(:docker_use)
+
     on roles(fetch(:docker_host, :all)) do
-      cmd = ["docker run", switches, name, volumes, baseimage].join(' ')
+      cmd = ["docker run", options, name, volumes, baseimage].join(' ')
       execute cmd
     end
   end
   after 'deploy:finished', 'docker:run'
 
-  task :remove, [:release] do |t, args|
-    args.with_defaults(release_path: "current")
-    execute "dcoker rm #{name}"
+  desc 'Warm up container with a request'
+  task :ping do
+    next unless fetch(:docker_use)
+
+    on roles(fetch(:docker_host, :all), wait: 10) do
+      port = capture(:docker, 'port', container_name, fetch(:docker_port)).split(':').last
+      execute :curl, '--silent', "localhost:#{port}"
+    end
+  end
+  after 'docker:run', 'docker:ping'
+
+
+  desc 'Stop current version container'
+  task :stop do
+    on roles(fetch(:docker_host, :all)) do
+      next unless fetch(:docker_use)
+
+      execute "docker stop #{container_name}"
+    end
   end
 
-  desc 'Stop and remove container'
-  task :stop_and_remove do
-    #last_release = capture(:ls, '-xt', releases_path).split.first
-    invoke :stop
-    invoke :remove
+  desc 'Start current version container'
+  task :start do
+    on roles(fetch(:docker_host, :all)) do
+      next unless fetch(:docker_use)
+
+      execute "docker start #{container_name}"
+    end
   end
-  before 'deploy:cleanup_rollback', 'docker:stop_and_remove'
 
-
-  def switches
+  def options
     "--detach --publish-all"
   end
 
@@ -30,13 +48,13 @@ namespace :docker do
     "--name #{container_name(release_path)}"
   end
 
-  def container_name(path)
+  def container_name(path = release_path)
     "#{fetch(:docker_prefix)}_#{path_basename(path)}"
   end
 
   def volumes
-    ["-v #{release_path}:#{current_path}",
-     "-v #{shared_path}:#{shared_path}",
+    ["-v #{release_path}:#{fetch(:docker_current_path, current_path)}",
+     "-v #{shared_path}:#{fetch(:docker_shared_path, shared_path)}",
      gemset_volume
     ].join(' ')
   end
@@ -54,21 +72,33 @@ namespace :docker do
     "-v #{fetch(:docker_gemset_path)}"
   end
 
+  # Auxiliary task when go forward
   namespace :deploy do
-
     # After new release go live stop previous container
     task :stop_previous do
+      next unless fetch(:docker_use)
+
       on roles(fetch(:docker_host, :all)) do
         prev_release_path = capture(:ls, '-xt', releases_path).split[1]
-        execute "docker kill #{container_name(prev_release_path)}"
+        running = capture(:docker, :inspect, "--format='{{ .State.Running }}'", container_name(prev_release_path))
+        if running == "true"
+          # http://superuser.com/questions/756999/whats-the-difference-between-docker-stop-and-docker-kill
+          #execute "docker kill #{container_name(prev_release_path)}"
+          execute "docker stop #{container_name(prev_release_path)}"
+        end
       end
     end
     after 'deploy:finished', "docker:deploy:stop_previous"
   end # namespace :stop
 
+  # Auxiliary task when go backward
+  namespace :rollback do
+  end
 end
 
 namespace :load do
   task :defaults do
+    set :docker_use, true
+    set :docker_port, 3000
   end
 end
