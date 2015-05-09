@@ -1,5 +1,26 @@
 namespace :docker do
   desc 'Create new container'
+  task :deploy do
+    next unless fetch(:docker_use)
+
+    on roles(fetch(:docker_host, :all)) do
+      invoke "deploy"
+      invoke "docker:run"
+      invoke "docker:ping"
+      invoke "docker:forward:stop_previous"
+    end
+  end
+
+  desc 'Deploy to new container while keep old one intact'
+  task :preview do
+    on roles(fetch(:docker_host, :all)) do
+      next unless fetch(:docker_use)
+      invoke "deploy"
+      invoke "docker:run"
+      invoke "docker:ping"
+    end
+  end
+
   task :run do
     next unless fetch(:docker_use)
 
@@ -7,8 +28,8 @@ namespace :docker do
       cmd = ["docker run", options, name, volumes, baseimage].join(' ')
       execute cmd
     end
+
   end
-  after 'deploy:finished', 'docker:run'
 
   desc 'Warm up container with a request'
   task :ping do
@@ -19,8 +40,6 @@ namespace :docker do
       execute :curl, '--silent', "localhost:#{port}"
     end
   end
-  after 'docker:run', 'docker:ping'
-
 
   desc 'Stop current version container'
   task :stop do
@@ -38,6 +57,11 @@ namespace :docker do
 
       execute "docker start #{container_name}"
     end
+  end
+
+  desc 'Current release good to go live'
+  task :golive do
+    invoke 'deploy:cleanup_rollback'
   end
 
   def options
@@ -73,7 +97,7 @@ namespace :docker do
   end
 
   # Auxiliary task when go forward
-  namespace :deploy do
+  namespace :forward do
     # After new release go live stop previous container
     task :stop_previous do
       next unless fetch(:docker_use)
@@ -85,10 +109,12 @@ namespace :docker do
           # http://superuser.com/questions/756999/whats-the-difference-between-docker-stop-and-docker-kill
           #execute "docker kill #{container_name(prev_release_path)}"
           execute "docker stop #{container_name(prev_release_path)}"
+        else
+          info "Container #{container_name(prev_release_path)} was not running"
         end
       end
     end
-    after 'deploy:finished', "docker:deploy:stop_previous"
+    #after 'docker:deploy', "docker:forward:stop_previous"
   end # namespace :stop
 
   # Auxiliary task when go backward
