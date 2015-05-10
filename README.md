@@ -73,12 +73,13 @@ There are two main reason why live preview exists:
 * live preview
   Deploy to production see how it behave and if statisfied it only needs to change the listen ports.
 
-However if you would like to have old and new to work simultaneously on differnt ports for exmple: live preview.
+However if you would like to have old and new to run simultaneously on differnt ports for exmple: live preview.
+
 This will keep both running:
 
 ``` cap deploy:docker:preview ```
 
-When you finished and decided to go live:
+When you ready to go live:
 
 ``` cap deploy:docker:golive ```
 
@@ -88,12 +89,13 @@ When you finished and decided to go live:
 
 ```ruby
 cap docker:deploy      # Full deploy, stop previous container
-cap docker:preview     # Prerelease, deploy a new version while the old one available for the public
-cap docker:golive      # Replace old version with new one
 cap docker:rollback    # If something goes wrong ;)
-cap docker:cleanup     # Remove old containers
 cap docker:start       # Start the current release container
 cap docker:stop        # Stop the current release container
+
+# Work in progress (preview flow)
+cap docker:preview     # Prerelease, deploy a new version while the old one available for the public
+cap docker:golive      # Replace old version with new one
 ```
 
 ### Variables
