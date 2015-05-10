@@ -4,7 +4,7 @@ This project aims to make it simple to deploy an app inside Docker containers.
 
 ## Concept
 
-You have a host and you set up a docker baseimage like this [ruby baseimage] ](https://github.com/bonyiii/dockers/tree/master/ruby). Once you have docker and  the basimage on your host you are ready to deploy.
+You have a host and you set up a docker baseimage like this [ruby baseimage](https://github.com/bonyiii/dockers/tree/master/ruby). Once you have docker and  the basimage on your host you are ready to deploy.
 Containers are used only as runtime environment, all the sourcecode lives on the hosti, installed by capistrano.
 Gems are also installed on host and gemset path is imported into container this way gems not duplicated among containers.
 
