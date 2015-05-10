@@ -1,5 +1,5 @@
 namespace :docker do
-  desc 'Create new container'
+  desc 'Deploy code and start a new container'
   task :deploy do
     next unless fetch(:docker_use)
 
@@ -11,6 +11,23 @@ namespace :docker do
       else
         invoke "docker:forward:stop_previous"
         invoke "docker:run"
+      end
+      invoke "docker:ping"
+    end
+  end
+
+  desc 'Rollback code and start a new container'
+  task :rollback do
+    next unless fetch(:docker_use)
+
+    on roles(fetch(:docker_host, :all)) do
+      invoke "docker:stop"
+      invoke "deploy:rollback"
+      if fetch(:docker_flow) == "preview"
+        invoke "docker:start"
+        invoke "docker:forward:stop_previous"
+      else
+        invoke "docker:start"
       end
       invoke "docker:ping"
     end
