@@ -14,13 +14,13 @@ Example:
 
 releases         |    | containers
 -----------------|----|----------------------
-20150509224056   | -> | my_app_20150509224056
-20150509224500   | -> | my_ap_20150509224500
+20150509224056   | -> | myapp_20150509224056
+20150509224500   | -> | myap_20150509224500
 
 Contanier mount these directories from the host
 * current release folder (eg: deploy/eleases/20150509224056)
 * shared                 (eg: deploy/shared)
-* gemset (optional)      (eg: /home/user/.rvm/gems/ruby-2.1.5@my_app)
+* gemset (optional)      (eg: /home/user/.rvm/gems/ruby-2.1.5@myapp)
 
 ## Installation
 
