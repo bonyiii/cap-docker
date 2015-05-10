@@ -5,18 +5,13 @@ namespace :docker do
 
     on roles(fetch(:docker_host, :all)) do
       invoke "deploy"
-      invoke "docker:run"
-      invoke "docker:ping"
-      invoke "docker:forward:stop_previous"
-    end
-  end
-
-  desc 'Deploy to new container while keep old one intact'
-  task :preview do
-    on roles(fetch(:docker_host, :all)) do
-      next unless fetch(:docker_use)
-      invoke "deploy"
-      invoke "docker:run"
+      if fetch(:docker_flow) == "preview"
+        invoke "docker:run"
+        invoke "docker:forward:stop_previous"
+      else
+        invoke "docker:forward:stop_previous"
+        invoke "docker:run"
+      end
       invoke "docker:ping"
     end
   end
@@ -28,7 +23,6 @@ namespace :docker do
       cmd = ["docker run", options, name, volumes, baseimage].join(' ')
       execute cmd
     end
-
   end
 
   desc 'Warm up container with a request'
@@ -58,6 +52,17 @@ namespace :docker do
     end
   end
 
+  desc 'Deploy to new container while keep old one intact'
+  task :preview do
+    on roles(fetch(:docker_host, :all)) do
+      next unless fetch(:docker_use)
+
+      invoke "deploy"
+      invoke "docker:run"
+      invoke "docker:ping"
+    end
+  end
+
   desc 'Current release good to go live'
   task :golive do
     on roles(fetch(:docker_host, :all)) do
@@ -70,7 +75,7 @@ namespace :docker do
   end
 
   def options
-    "--detach --publish-all"
+    "--detach #{port_binding}"
   end
 
   def name
@@ -86,6 +91,14 @@ namespace :docker do
      "-v #{shared_path}:#{fetch(:docker_shared_path, shared_path)}",
      gemset_volume
     ].join(' ')
+  end
+
+  def port_binding
+    if fetch(:docker_flow) == "preview"
+      "--publish-all"
+    else
+      "-p #{fetch(:docker_port)}:#{fetch(:docker_port)}"
+    end
   end
 
   def baseimage
@@ -105,7 +118,7 @@ namespace :docker do
     capture(:docker, 'port', container_name, fetch(:docker_port)).split(':').last
   end
 
-  # Auxiliary task when go forward
+  # Auxiliary task when go forward (eg: deploy)
   namespace :forward do
     # After new release go live stop previous container
     task :stop_previous do
@@ -154,7 +167,6 @@ namespace :docker do
       running = capture(:docker, :inspect, "--format='{{ .State.Running }}'", container_name(path))
       if running == "true"
         # http://superuser.com/questions/756999/whats-the-difference-between-docker-stop-and-docker-kill
-        #execute "docker kill #{container_name(prev_release_path)}"
         execute "docker stop #{container_name(path)}"
       else
         info "Container #{container_name(path)} was not running"
@@ -162,8 +174,8 @@ namespace :docker do
     end
   end # namespace :stop
 
-  # Auxiliary task when go backward
-  namespace :rollback do
+  # Auxiliary task when go backward (eg: rollback)
+  namespace :backward do
   end
 end
 
@@ -172,5 +184,6 @@ namespace :load do
     set :docker_use, true
     set :docker_port, 3000
     set :docker_preview_port, 3001
+    set :docker_flow, "simple"
   end
 end
