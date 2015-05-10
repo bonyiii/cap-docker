@@ -35,6 +35,7 @@ set :docker_gemset_path, "host_path:guest_path"    # gemset path, no default, if
 set :dcoker_baseimage, ""                          # Specify the baseimage will be use to generate container
 set :docker_prefix, "myapp"                        # Dcoker container name: prefix + capistarno directory name, eg: myapp_20150509174653
 set :docker_port, 3000                             # Dcoker container exposed port
+set :docker_preview_port, 3001                     # Port on host to see how new release will looks like
 ```
 
 

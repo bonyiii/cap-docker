@@ -36,8 +36,7 @@ namespace :docker do
     next unless fetch(:docker_use)
 
     on roles(fetch(:docker_host, :all), wait: 10) do
-      port = capture(:docker, 'port', container_name, fetch(:docker_port)).split(':').last
-      execute :curl, '--silent', "localhost:#{port}"
+      execute :curl, '--silent', "localhost:#{current_port}"
     end
   end
 
@@ -61,7 +60,13 @@ namespace :docker do
 
   desc 'Current release good to go live'
   task :golive do
-    invoke 'docker:forward:stop_previous'
+    on roles(fetch(:docker_host, :all)) do
+      next unless fetch(:docker_use)
+
+      invoke 'docker:forward:stop_previous'
+      # sudo maybe?
+      #execute(:iptables, "-I DOCKER 1 -t nat -p tcp --dport #{fetch(:docker_preview_port)} -j REDIRECT --to-port #{current_port}")
+    end
   end
 
   def options
@@ -96,6 +101,10 @@ namespace :docker do
     "-v #{fetch(:docker_gemset_path)}"
   end
 
+  def current_port
+    capture(:docker, 'port', container_name, fetch(:docker_port)).split(':').last
+  end
+
   # Auxiliary task when go forward
   namespace :forward do
     # After new release go live stop previous container
@@ -103,18 +112,54 @@ namespace :docker do
       next unless fetch(:docker_use)
 
       on roles(fetch(:docker_host, :all)) do
-        prev_release_path = capture(:ls, '-xt', releases_path).split[1]
-        running = capture(:docker, :inspect, "--format='{{ .State.Running }}'", container_name(prev_release_path))
-        if running == "true"
-          # http://superuser.com/questions/756999/whats-the-difference-between-docker-stop-and-docker-kill
-          #execute "docker kill #{container_name(prev_release_path)}"
-          execute "docker stop #{container_name(prev_release_path)}"
-        else
-          info "Container #{container_name(prev_release_path)} was not running"
-        end
+        path = capture(:ls, '-xt', releases_path).split[1]
+        stop(path)
       end
     end
     #after 'docker:deploy', "docker:forward:stop_previous"
+
+    desc 'Stop all previous containers'
+    task :stop_all_previous do
+      next unless fetch(:docker_use)
+
+      on roles(fetch(:docker_host, :all)) do
+        paths = capture(:ls, '-xt', releases_path).split
+
+        paths.drop(1).each do |path|
+          stop(path)
+        end
+      end
+    end
+
+    desc 'Remove all previous containers'
+    task :remove_all_previous do
+      next unless fetch(:docker_use)
+
+      on roles(fetch(:docker_host, :all)) do
+        paths = capture(:ls, '-xt', releases_path).split
+
+        paths.drop(1).each do |path|
+          rm(path)
+        end
+      end
+    end
+
+    def rm(path)
+      execute "docker rm #{container_name(path)}"
+    rescue
+      warn "docker rm #{container_name(path)} failed"
+    end
+
+    def stop(path)
+      running = capture(:docker, :inspect, "--format='{{ .State.Running }}'", container_name(path))
+      if running == "true"
+        # http://superuser.com/questions/756999/whats-the-difference-between-docker-stop-and-docker-kill
+        #execute "docker kill #{container_name(prev_release_path)}"
+        execute "docker stop #{container_name(path)}"
+      else
+        info "Container #{container_name(path)} was not running"
+      end
+    end
   end # namespace :stop
 
   # Auxiliary task when go backward
@@ -126,5 +171,6 @@ namespace :load do
   task :defaults do
     set :docker_use, true
     set :docker_port, 3000
+    set :docker_preview_port, 3001
   end
 end
