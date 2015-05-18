@@ -101,9 +101,6 @@ cap docker:golive      # Replace old version with new one
 ### Variables
 
 ```ruby
-# set false if you don't want to use it on a host
-set :docker_use, true
-
 # On which roles should docker command exceuted
 set :docker_host, [:all]
 

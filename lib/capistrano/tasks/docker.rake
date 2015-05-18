@@ -1,8 +1,6 @@
 namespace :docker do
   desc 'Deploy code and start a new container'
   task :deploy do
-    next unless fetch(:docker_use)
-
     on roles(fetch(:docker_host, :all)) do
       invoke "deploy"
       if fetch(:docker_flow) == "preview"
@@ -18,14 +16,12 @@ namespace :docker do
 
   desc 'Rollback code and start a new container'
   task :rollback do
-    next unless fetch(:docker_use)
-
     on roles(fetch(:docker_host, :all)) do
       invoke "docker:stop"
       invoke "deploy:rollback"
       if fetch(:docker_flow) == "preview"
-        invoke "docker:start"
-        invoke "docker:forward:stop_previous"
+        #invoke "docker:start"
+        #invoke "docker:forward:stop_previous"
       else
         invoke "docker:start"
       end
@@ -34,8 +30,6 @@ namespace :docker do
   end
 
   task :run do
-    next unless fetch(:docker_use)
-
     on roles(fetch(:docker_host, :all)) do
       cmd = ["docker run", options, name, volumes, baseimage].join(' ')
       execute cmd
@@ -44,8 +38,6 @@ namespace :docker do
 
   desc 'Warm up container with a request'
   task :ping do
-    next unless fetch(:docker_use)
-
     on roles(fetch(:docker_host, :all), wait: 10) do
       execute :curl, '--silent', "localhost:#{current_port}"
     end
@@ -54,8 +46,6 @@ namespace :docker do
   desc 'Stop current version container'
   task :stop do
     on roles(fetch(:docker_host, :all)) do
-      next unless fetch(:docker_use)
-
       execute "docker stop #{container_name}"
     end
   end
@@ -63,8 +53,6 @@ namespace :docker do
   desc 'Start current version container'
   task :start do
     on roles(fetch(:docker_host, :all)) do
-      next unless fetch(:docker_use)
-
       execute "docker start #{container_name}"
     end
   end
@@ -72,8 +60,6 @@ namespace :docker do
   desc 'Deploy to new container while keep old one intact'
   task :preview do
     on roles(fetch(:docker_host, :all)) do
-      next unless fetch(:docker_use)
-
       invoke "deploy"
       invoke "docker:run"
       invoke "docker:ping"
@@ -83,8 +69,6 @@ namespace :docker do
   desc 'Current release good to go live'
   task :golive do
     on roles(fetch(:docker_host, :all)) do
-      next unless fetch(:docker_use)
-
       invoke 'docker:forward:stop_previous'
       # sudo maybe?
       #execute(:iptables, "-I DOCKER 1 -t nat -p tcp --dport #{fetch(:docker_preview_port)} -j REDIRECT --to-port #{current_port}")
@@ -139,8 +123,6 @@ namespace :docker do
   namespace :forward do
     # After new release go live stop previous container
     task :stop_previous do
-      next unless fetch(:docker_use)
-
       on roles(fetch(:docker_host, :all)) do
         path = capture(:ls, '-xt', releases_path).split[1]
         stop(path)
@@ -150,8 +132,6 @@ namespace :docker do
 
     desc 'Stop all previous containers'
     task :stop_all_previous do
-      next unless fetch(:docker_use)
-
       on roles(fetch(:docker_host, :all)) do
         paths = capture(:ls, '-xt', releases_path).split
 
@@ -163,8 +143,6 @@ namespace :docker do
 
     desc 'Remove all previous containers'
     task :remove_all_previous do
-      next unless fetch(:docker_use)
-
       on roles(fetch(:docker_host, :all)) do
         paths = capture(:ls, '-xt', releases_path).split
 
