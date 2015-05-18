@@ -2,6 +2,10 @@
 
 This project aims to make it simple to deploy an app inside Docker containers.
 
+### Work in progress so the gem is not yet released.
+
+Though you can install it via github.
+
 ## Concept
 
 You have a host and you set up a docker baseimage like this one. Once you have docker and  the basimage on your host you are ready to deploy.
@@ -45,13 +49,14 @@ require 'capistrano/docker'
 ## Flow
 
 ### Simple
+
 This is the default flow. It can be changed by setting ```docker_flow``` to something else.
 
 With simple flow you specify a port on which your docker container listen (eg: docker run -p 3000:3000) and
 when the code deploy is done the old container stopped and a new one will be go up. It means there is short
 outage in the service while the one container stops and the other go live.
 
-Run ```cap docker:deploy``` which invoke the following steps:
+Runing ```cap deploy``` will invoke the following steps on docker enabled hosts:
 
 ```ruby
 cap deploy                        # Run the regular deploy
@@ -60,7 +65,17 @@ cap docker:run                    # Invoke docker run
 cap docker:ping                   # Wake application up
 ```
 
+Runing ```cap deploy:rollback``` will invoke the following steps on docker enabled hosts:
+
+```ruby
+cap docker:stop                   # Stop currently runing conatiner
+cap deploy:rollback               # Run the regular deploy
+cap docker:start                  # Start container with previous version's code
+cap docker:ping                   # Wake application up
+```
+
 ### With live preview (work in progress)
+
 It can be enabled - even per host - this way: ```set :docker_flow, "preview"``` 
 
 On new release the old conatiner by default will be switched off and new container with the new
@@ -85,10 +100,10 @@ When you ready to go live:
 
 ## Usage
 
-### Commands
+### Additional Commands
 
 ```ruby
-cap docker:deploy      # Full deploy, stop previous container
+cap docker:deploy      # Create new docker container and stop previous version
 cap docker:rollback    # If something goes wrong ;)
 cap docker:start       # Start the current release container
 cap docker:stop        # Stop the current release container

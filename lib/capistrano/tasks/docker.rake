@@ -2,13 +2,16 @@ namespace :docker do
   desc 'Deploy code and start a new container'
   task :deploy do
     on roles(fetch(:docker_host, :all)) do
-      invoke "deploy"
       if fetch(:docker_flow) == "preview"
         invoke "docker:run"
         invoke "docker:forward:stop_previous"
       else
         invoke "docker:forward:stop_previous"
-        invoke "docker:run"
+        if container_exists?(container_name)
+          invoke "docker:start"
+        else
+          invoke "docker:run"
+        end
       end
       invoke "docker:ping"
     end
@@ -119,13 +122,19 @@ namespace :docker do
     capture(:docker, 'port', container_name, fetch(:docker_port)).split(':').last
   end
 
+  def container_exists?(path)
+    warn "container_exists?(#{path})"
+
+    capture(:docker, "ps -a  | grep #{path} | wc -l").to_i > 0
+  end
+
   # Auxiliary task when go forward (eg: deploy)
   namespace :forward do
     # After new release go live stop previous container
     task :stop_previous do
       on roles(fetch(:docker_host, :all)) do
         path = capture(:ls, '-xt', releases_path).split[1]
-        stop(path)
+        stop(path) if container_exists?(path)
       end
     end
     #after 'docker:deploy', "docker:forward:stop_previous"
@@ -136,7 +145,7 @@ namespace :docker do
         paths = capture(:ls, '-xt', releases_path).split
 
         paths.drop(1).each do |path|
-          stop(path)
+          stop(path) if container_exists?(path)
         end
       end
     end
@@ -147,7 +156,7 @@ namespace :docker do
         paths = capture(:ls, '-xt', releases_path).split
 
         paths.drop(1).each do |path|
-          rm(path)
+          rm(path) if container_exists?(path)
         end
       end
     end
@@ -172,6 +181,7 @@ namespace :docker do
   # Auxiliary task when go backward (eg: rollback)
   namespace :backward do
   end
+
 end
 
 namespace :load do
@@ -182,3 +192,17 @@ namespace :load do
     set :docker_flow, "simple"
   end
 end
+
+### HOOKS ###
+
+# Hook for deploy process
+# to override default task eg: deploy: :default
+# it must be in the toplevel namespace
+Rake::Task['deploy'].enhance do
+  Rake::Task['docker:deploy'].invoke
+end
+#after 'deploy', 'docker:deploy'
+
+# Hooks for rollback process
+before 'deploy:rollback', 'docker:stop'
+after 'deploy:rollback', 'docker:start'
