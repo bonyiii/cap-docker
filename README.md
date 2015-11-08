@@ -1,4 +1,5 @@
-![Kitten](http://gittens.r15.railsrumble.com//badge/bonyiii/cap-docker)
+[![Kitten](http://gittens.r15.railsrumble.com//badge/bonyiii/cap-docker)](http://gittens.r15.railsrumble.com//badge/bonyiii/cap-docker)
+
 
 # Cap::Docker
 
