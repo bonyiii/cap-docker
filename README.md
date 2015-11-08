@@ -1,3 +1,5 @@
+http://gittens.r15.railsrumble.com//badge/bonyiii/cap-docker
+
 # Cap::Docker
 
 This project aims to make it simple to deploy an app inside Docker containers.
